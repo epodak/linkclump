@@ -1,10 +1,10 @@
 var settingsManager = new SettingsManager();
 
-Array.prototype.unique = function() {
+Array.prototype.unique = function () {
 	var a = [];
 	var l = this.length;
-	for(var i=0; i<l; i++) {
-		for(var j=i+1; j<l; j++) {
+	for (var i = 0; i < l; i++) {
+		for (var j = i + 1; j < l; j++) {
 			if (this[i].url === this[j].url)
 				j = ++i;
 		}
@@ -15,9 +15,9 @@ Array.prototype.unique = function() {
 
 function openTab(urls, delay, windowId, openerTabId, tabPosition, closeTime) {
 	const obj = {
-			windowId,
-			url: urls.shift().url,
-			active: false
+		windowId,
+		url: urls.shift().url,
+		active: false
 	};
 
 	// only add tab ID if delay feature is not being used as if tab with openerTabId is closed, the links stop opening
@@ -25,35 +25,35 @@ function openTab(urls, delay, windowId, openerTabId, tabPosition, closeTime) {
 		obj.openerTabId = openerTabId;
 	}
 
-	if(tabPosition != null) {
+	if (tabPosition != null) {
 		obj.index = tabPosition;
 		tabPosition++;
 	}
 
-	chrome.tabs.create(obj, function(tab) {
-		if(closeTime > 0) {
-			window.setTimeout(function() {
+	chrome.tabs.create(obj, function (tab) {
+		if (closeTime > 0) {
+			window.setTimeout(function () {
 				chrome.tabs.remove(tab.id);
-			}, closeTime*1000);
+			}, closeTime * 1000);
 		}
 	});
 
-	if(urls.length > 0) {
-		window.setTimeout(function() {openTab(urls, delay, windowId, openerTabId, tabPosition, closeTime)}, delay*1000);
+	if (urls.length > 0) {
+		window.setTimeout(function () { openTab(urls, delay, windowId, openerTabId, tabPosition, closeTime) }, delay * 1000);
 	}
 
 }
 
-function copyToClipboard( text ){
-    var copyDiv = document.createElement("textarea");
-    copyDiv.contentEditable = true;
-    document.body.appendChild(copyDiv);
-    copyDiv.innerHTML = text;
-    copyDiv.unselectable = "off";
-    copyDiv.focus();
-    document.execCommand("SelectAll");
-    document.execCommand("Copy", false, null);
-    document.body.removeChild(copyDiv);
+function copyToClipboard(text) {
+	var copyDiv = document.createElement("textarea");
+	copyDiv.contentEditable = true;
+	document.body.appendChild(copyDiv);
+	copyDiv.innerHTML = text;
+	copyDiv.unselectable = "off";
+	copyDiv.focus();
+	document.execCommand("SelectAll");
+	document.execCommand("Copy", false, null);
+	document.body.removeChild(copyDiv);
 }
 
 function pad(number, length) {
@@ -65,14 +65,14 @@ function pad(number, length) {
 	return str;
 }
 
-function timeConverter(a){
+function timeConverter(a) {
 	var year = a.getFullYear();
-	var month = pad(a.getMonth()+1, 2)
+	var month = pad(a.getMonth() + 1, 2)
 	var day = pad(a.getDate(), 2);
-	var hour = pad(a.getHours(),2);
-	var min = pad(a.getMinutes(),2);
-	var sec = pad(a.getSeconds(),2);
-	var time = year+"-"+month+"-"+day+" "+hour+":"+min+":"+sec;
+	var hour = pad(a.getHours(), 2);
+	var min = pad(a.getMinutes(), 2);
+	var sec = pad(a.getSeconds(), 2);
+	var time = year + "-" + month + "-" + day + " " + hour + ":" + min + ":" + sec;
 	return time;
 }
 
@@ -85,121 +85,123 @@ const AS_LINK_HTML = 4
 const AS_LIST_LINK_HTML = 5
 const AS_MARKDOWN = 6
 
-function formatLink({url, title}, copyFormat) {
-	switch(parseInt(copyFormat)) {
-	case URLS_WITH_TITLES:
-		return title+"\t"+url+"\n";
-	case URLS_ONLY: 
-		return url+"\n";
-	case URLS_ONLY_SPACE_SEPARATED: 
-		return url+" ";
-	case TITLES_ONLY:
-		return title+"\n";
-	case AS_LINK_HTML:
-		return '<a href="'+url+'">'+title+"</a>\n";
-	case AS_LIST_LINK_HTML:
-		return '<li><a href="'+url+'">'+title+"</a></li>\n";
-	case AS_MARKDOWN:
-		return "["+title+"]("+url+")\n";
+function formatLink({ url, title }, copyFormat) {
+	switch (parseInt(copyFormat)) {
+		case URLS_WITH_TITLES:
+			return title + "\t" + url + "\n";
+		case URLS_ONLY:
+			return url + "\n";
+		case URLS_ONLY_SPACE_SEPARATED:
+			return url + " ";
+		case TITLES_ONLY:
+			return title + "\n";
+		case AS_LINK_HTML:
+			return '<a href="' + url + '">' + title + "</a>\n";
+		case AS_LIST_LINK_HTML:
+			return '<li><a href="' + url + '">' + title + "</a></li>\n";
+		case AS_MARKDOWN:
+			return "[" + title + "](" + url + ")\n";
 	}
 }
 
-function handleRequests(request, sender, callback){
-	switch(request.message) {
-	case "activate":
-		if(request.setting.options.block) {
-			request.urls = request.urls.unique();
-		}
-
-		if(request.urls.length === 0) {
-			return;
-		}
-
-		if(request.setting.options.reverse) {
-			request.urls.reverse();
-		}
-
-		switch(request.setting.action) {
-		case "copy":
-			var text = "";
-			for (let i = 0; i < request.urls.length; i++) {
-				text += formatLink(request.urls[i], request.setting.options.copy);
+function handleRequests(request, sender, callback) {
+	switch (request.message) {
+		case "activate":
+			if (request.setting.options.block) {
+				request.urls = request.urls.unique();
 			}
-			
-			if(request.setting.options.copy == AS_LIST_LINK_HTML) {
-				text = "<ul>\n"+text+"</ul>\n"
+
+			if (request.urls.length === 0) {
+				return;
 			}
-			
-			copyToClipboard(text);
-			break;
-		case "bm":
-			chrome.bookmarks.getTree(
-				function(bookmarkTreeNodes) {
-					// make assumption that bookmarkTreeNodes[0].children[1] refers to the "other bookmarks" folder
-					// as different languages will not use the english name to refer to the folder
-					chrome.bookmarks.create({"parentId": bookmarkTreeNodes[0].children[1].id, "title": "Linkclump "+timeConverter(new Date())},
-						function(newFolder) {
-							for (let j = 0; j < request.urls.length; j++) {
-								chrome.bookmarks.create({"parentId": newFolder.id,
-									"title": request.urls[j].title,
-									"url": request.urls[j].url});
-							}
+
+			if (request.setting.options.reverse) {
+				request.urls.reverse();
+			}
+
+			switch (request.setting.action) {
+				case "copy":
+					var text = "";
+					for (let i = 0; i < request.urls.length; i++) {
+						text += formatLink(request.urls[i], request.setting.options.copy);
+					}
+
+					if (request.setting.options.copy == AS_LIST_LINK_HTML) {
+						text = "<ul>\n" + text + "</ul>\n"
+					}
+
+					copyToClipboard(text);
+					break;
+				case "bm":
+					chrome.bookmarks.getTree(
+						function (bookmarkTreeNodes) {
+							// make assumption that bookmarkTreeNodes[0].children[1] refers to the "other bookmarks" folder
+							// as different languages will not use the english name to refer to the folder
+							chrome.bookmarks.create({ "parentId": bookmarkTreeNodes[0].children[1].id, "title": "Linkclump " + timeConverter(new Date()) },
+								function (newFolder) {
+									for (let j = 0; j < request.urls.length; j++) {
+										chrome.bookmarks.create({
+											"parentId": newFolder.id,
+											"title": request.urls[j].title,
+											"url": request.urls[j].url
+										});
+									}
+								}
+							);
 						}
 					);
-				}
-			);
+
+					break;
+				case "win":
+					chrome.windows.getCurrent(function (currentWindow) {
+
+						chrome.windows.create({ url: request.urls.shift().url, "focused": !request.setting.options.unfocus }, function (window) {
+							if (request.urls.length > 0) {
+								openTab(request.urls, request.setting.options.delay, window.id, undefined, null, 0);
+							}
+						});
+
+						if (request.setting.options.unfocus) {
+							chrome.windows.update(currentWindow.id, { "focused": true });
+						}
+					});
+					break;
+				case "tabs":
+					chrome.tabs.get(sender.tab.id, function (tab) {
+						chrome.windows.getCurrent(function (window) {
+							var tab_index = null;
+
+							if (!request.setting.options.end) {
+								tab_index = tab.index + 1;
+							}
+
+							openTab(request.urls, request.setting.options.delay, window.id, tab.id, tab_index, request.setting.options.close);
+						})
+					});
+					break;
+			}
 
 			break;
-		case "win":
-			chrome.windows.getCurrent(function(currentWindow){
-
-				chrome.windows.create({url: request.urls.shift().url, "focused" : !request.setting.options.unfocus}, function(window){
-					if(request.urls.length > 0) {
-						openTab(request.urls, request.setting.options.delay, window.id, undefined, null, 0);
-					}
-				});
-
-				if(request.setting.options.unfocus) {
-					chrome.windows.update(currentWindow.id, {"focused": true});
-				}
-			});
+		case "init":
+			callback(settingsManager.load());
 			break;
-		case "tabs":
-			chrome.tabs.get(sender.tab.id, function(tab) {
-				chrome.windows.getCurrent(function(window){
-					var tab_index = null;
+		case "update":
+			settingsManager.save(request.settings);
 
-					if(!request.setting.options.end) {
-						tab_index = tab.index+1;
-					}
-
-					openTab(request.urls, request.setting.options.delay, window.id, tab.id, tab_index, request.setting.options.close);
+			chrome.windows.getAll({
+				populate: true
+			}, function (windowList) {
+				windowList.forEach(function (window) {
+					window.tabs.forEach(function (tab) {
+						chrome.tabs.sendMessage(tab.id, {
+							message: "update",
+							settings: settingsManager.load()
+						}, null);
+					})
 				})
 			});
-			break;
-		}
 
-		break;
-	case "init":
-		callback(settingsManager.load());
-		break;
-	case "update":
-		settingsManager.save(request.settings);
-	
-		chrome.windows.getAll({
-			populate: true
-		}, function(windowList){
-			windowList.forEach(function(window){
-				window.tabs.forEach(function(tab){
-					chrome.tabs.sendMessage(tab.id, {
-						message: "update",
-						settings: settingsManager.load()
-					}, null);
-				})
-			})
-		});
-	
-		break;
+			break;
 	}
 }
 
@@ -209,9 +211,9 @@ chrome.extension.onMessage.addListener(handleRequests)
 if (!settingsManager.isInit()) {
 	// initialize settings manager with defaults and to stop this appearing again
 	settingsManager.init();
-	
+
 	// inject Linkclump into windows currently open to make it just work
-	chrome.windows.getAll({ populate: true }, function(windows) {
+	chrome.windows.getAll({ populate: true }, function (windows) {
 		for (var i = 0; i < windows.length; ++i) {
 			for (var j = 0; j < windows[i].tabs.length; ++j) {
 				if (!/^https?:\/\//.test(windows[i].tabs[j].url)) continue;
@@ -219,7 +221,7 @@ if (!settingsManager.isInit()) {
 			}
 		}
 	});
-	
+
 	// pop up window to show tour and options page
 	chrome.windows.create({
 		url: document.location.protocol + "//" + document.location.host + "/pages/options.html?init=true",
@@ -232,4 +234,27 @@ if (!settingsManager.isInit()) {
 	settingsManager.update();
 }
 
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+	if (request.message === "openMatchingLinks") {
+		let urls = request.urls;
+		let delay = 2; // 或者从设置中读取
+		let windowId = sender.tab.windowId;
+		let openerTabId = sender.tab.id;
+		let tabPosition = null; // 可选位置
+		let closeTime = 0; // 或者从设置中读取
+
+		openTab(urls, delay, windowId, openerTabId, tabPosition, closeTime);
+	}
+});
+
+chrome.commands.onCommand.addListener(function (command) {
+	if (command === "open_links") {
+		chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+			let activeTab = tabs[0];
+			chrome.tabs.executeScript(activeTab.id, {
+				code: 'let pattern = prompt("Enter URL pattern"); if (pattern) { chrome.runtime.sendMessage({ message: "openLinks", pattern: pattern }); }'
+			});
+		});
+	}
+});
 

@@ -27,7 +27,7 @@ var timer = 0;
 
 chrome.extension.sendMessage({
 	message: "init"
-}, function(response) {
+}, function (response) {
 	if (response === null) {
 		console.log("Unable to load linkclump due to null response");
 	} else {
@@ -58,7 +58,7 @@ chrome.extension.sendMessage({
 	}
 });
 
-chrome.extension.onMessage.addListener(function(request, sender, callback) {
+chrome.extension.onMessage.addListener(function (request, sender, callback) {
 	if (request.message === "update") {
 		this.settings = request.settings.actions;
 	}
@@ -227,7 +227,7 @@ function mouseup(event) {
 	if (this.box_on) {
 		// all the detection of the mouse to bounce
 		if (this.allow_selection() && this.timer === 0) {
-			this.timer = setTimeout(function() {
+			this.timer = setTimeout(function () {
 				this.update_box(event.pageX, event.pageY);
 				this.detech(event.pageX, event.pageY, true);
 
@@ -564,3 +564,22 @@ function contextmenu(event) {
 		event.preventDefault();
 	}
 }
+
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+	if (request.message === "openLinks") {
+		let pattern = request.pattern;
+		let regex = new RegExp(pattern);
+		let links = document.links;
+		let matchingLinks = [];
+
+		for (let link of links) {
+			if (regex.test(link.href)) {
+				matchingLinks.push({ url: link.href, title: link.innerText });
+			}
+		}
+
+		if (matchingLinks.length > 0) {
+			chrome.runtime.sendMessage({ message: "openMatchingLinks", urls: matchingLinks });
+		}
+	}
+});
